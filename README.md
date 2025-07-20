@@ -66,7 +66,7 @@ face-tracking-app/
 ### 🚀 Installation
 
 ```bash
-git clone https://github.com/your-username/face-tracking-app.git
+git clone https://github.com/dhiraj1155/face-tracking-app.git
 cd face-tracking-app
 npm install
 ```
