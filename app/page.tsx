@@ -13,6 +13,7 @@ interface SavedVideo {
   blob: Blob
   timestamp: number
   duration: number
+  objectUrl?: string
 }
 
 export default function FaceTrackingApp() {
@@ -42,12 +43,14 @@ export default function FaceTrackingApp() {
           if (videoData) {
             const parsed = JSON.parse(videoData)
             const blob = new Blob([new Uint8Array(parsed.data)], { type: "video/webm" })
+            const objectUrl = URL.createObjectURL(blob)
             videos.push({
               id: parsed.id,
               name: parsed.name,
               blob,
               timestamp: parsed.timestamp,
               duration: parsed.duration,
+              objectUrl,
             })
           }
         }
@@ -59,6 +62,15 @@ export default function FaceTrackingApp() {
     }
 
     loadSavedVideos()
+
+    // Cleanup object URLs when component unmounts
+    return () => {
+      savedVideos.forEach((video) => {
+        if (video.objectUrl) {
+          URL.revokeObjectURL(video.objectUrl)
+        }
+      })
+    }
   }, [])
 
   // Initialize camera and face detection
@@ -166,113 +178,133 @@ export default function FaceTrackingApp() {
   }
 
   // Start recording
-  const startRecording = useCallback(() => {
-    if (!streamRef.current) return
+  const startRecording = useCallback(async () => {
+    if (!streamRef.current || isRecording) return
 
-    try {
-      // Create a new stream that includes both video and canvas overlay
-      const canvas = canvasRef.current
-      const video = videoRef.current
+    const video = videoRef.current
+    const canvas = canvasRef.current
+    if (!video || !canvas) return
 
-      if (!canvas || !video) return
-
-      // Create a composite stream with video + overlay
-      const compositeCanvas = document.createElement("canvas")
-      const compositeCtx = compositeCanvas.getContext("2d")
-
-      if (!compositeCtx) return
-
-      compositeCanvas.width = video.videoWidth
-      compositeCanvas.height = video.videoHeight
-
-      const drawComposite = () => {
-        if (!isRecording) return
-
-        // Draw video frame
-        compositeCtx.drawImage(video, 0, 0, compositeCanvas.width, compositeCanvas.height)
-
-        // Draw face tracking overlay
-        compositeCtx.drawImage(canvas, 0, 0)
-
-        requestAnimationFrame(drawComposite)
-      }
-
-      drawComposite()
-
-      const compositeStream = compositeCanvas.captureStream(30)
-
-      // Add audio track from original stream
-      const audioTrack = streamRef.current.getAudioTracks()[0]
-      if (audioTrack) {
-        compositeStream.addTrack(audioTrack)
-      }
-
-      recordedChunksRef.current = []
-      mediaRecorderRef.current = new MediaRecorder(compositeStream, {
-        mimeType: "video/webm;codecs=vp9",
-      })
-
-      mediaRecorderRef.current.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          recordedChunksRef.current.push(event.data)
+    // Ensure we have valid video metadata
+    if (video.videoWidth === 0) {
+      await new Promise<void>((res) => {
+        const onLoaded = () => {
+          video.removeEventListener("loadedmetadata", onLoaded)
+          res()
         }
-      }
-
-      mediaRecorderRef.current.onstop = () => {
-        saveRecording()
-      }
-
-      mediaRecorderRef.current.start()
-      setIsRecording(true)
-      setRecordingTime(0)
-
-      // Start recording timer
-      const timer = setInterval(() => {
-        setRecordingTime((prev) => prev + 1)
-      }, 1000)
-
-      // Store timer reference for cleanup
-      ;(mediaRecorderRef.current as any).timer = timer
-
-      toast({
-        title: "Recording started",
-        description: "Face tracking markers will be included in the video",
-      })
-    } catch (error) {
-      console.error("Error starting recording:", error)
-      toast({
-        title: "Recording error",
-        description: "Unable to start recording",
-        variant: "destructive",
+        video.addEventListener("loadedmetadata", onLoaded)
       })
     }
+
+    // Dimensions from video or track settings as a fallback
+    const width = video.videoWidth || video.srcObject?.getVideoTracks()[0]?.getSettings().width || 640
+    const height = video.videoHeight || video.srcObject?.getVideoTracks()[0]?.getSettings().height || 480
+
+    const compositeCanvas = document.createElement("canvas")
+    compositeCanvas.width = width
+    compositeCanvas.height = height
+    const compositeCtx = compositeCanvas.getContext("2d")!
+    let animationId: number
+
+    const drawComposite = () => {
+      compositeCtx.clearRect(0, 0, width, height)
+      compositeCtx.drawImage(video, 0, 0, width, height)
+      if (canvas.width && canvas.height) {
+        compositeCtx.drawImage(canvas, 0, 0, width, height)
+      }
+      animationId = requestAnimationFrame(drawComposite)
+    }
+    drawComposite()
+
+    const compositeStream = compositeCanvas.captureStream(30)
+    const audioTrack = streamRef.current.getAudioTracks()[0]
+    if (audioTrack) compositeStream.addTrack(audioTrack)
+
+    recordedChunksRef.current = []
+    const mimeTypes = ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm", "video/mp4"]
+    const mimeType = mimeTypes.find((t) => MediaRecorder.isTypeSupported(t)) || ""
+    mediaRecorderRef.current = new MediaRecorder(compositeStream, {
+      mimeType,
+      videoBitsPerSecond: 2_500_000,
+    })
+
+    const handleData = (e: BlobEvent) => {
+      if (e.data.size) recordedChunksRef.current.push(e.data)
+    }
+    mediaRecorderRef.current.addEventListener("dataavailable", handleData)
+
+    mediaRecorderRef.current.addEventListener("stop", () => {
+      cancelAnimationFrame(animationId)
+      mediaRecorderRef.current?.removeEventListener("dataavailable", handleData)
+      saveRecording()
+    })
+
+    mediaRecorderRef.current.start(1000)
+    setIsRecording(true)
+    setRecordingTime(0)
+    ;(mediaRecorderRef.current as any).timer = setInterval(() => setRecordingTime((t) => t + 1), 1000)
+
+    toast({ title: "Recording started", description: "Overlay will be saved" })
   }, [isRecording, toast])
 
   // Stop recording
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop()
+      console.log("Stopping recording...")
+
+      // Stop the MediaRecorder
+      if (mediaRecorderRef.current.state === "recording") {
+        mediaRecorderRef.current.stop()
+      }
 
       // Clear timer
       if ((mediaRecorderRef.current as any).timer) {
         clearInterval((mediaRecorderRef.current as any).timer)
       }
 
+      // Clear animation frame
+      if ((mediaRecorderRef.current as any).animationId) {
+        cancelAnimationFrame((mediaRecorderRef.current as any).animationId)
+      }
+
       setIsRecording(false)
 
       toast({
         title: "Recording stopped",
-        description: "Video saved successfully",
+        description: "Processing video...",
       })
     }
   }, [isRecording, toast])
 
   // Save recording to localStorage
   const saveRecording = async () => {
-    if (recordedChunksRef.current.length === 0) return
+    console.log("Saving recording, chunks:", recordedChunksRef.current.length)
+
+    if (recordedChunksRef.current.length === 0) {
+      console.error("No recorded chunks to save")
+      toast({
+        title: "Save error",
+        description: "No video data to save",
+        variant: "destructive",
+      })
+      return
+    }
 
     try {
-      const blob = new Blob(recordedChunksRef.current, { type: "video/webm" })
+      // Create blob from recorded chunks with proper MIME type
+      const blob = new Blob(recordedChunksRef.current, {
+        type: "video/webm;codecs=vp9,opus",
+      })
+      console.log("Created blob:", blob.size, "bytes")
+
+      if (blob.size === 0) {
+        throw new Error("Recorded video is empty")
+      }
+
+      // Create object URL for immediate playback
+      const objectUrl = URL.createObjectURL(blob)
+
+      // Convert to array buffer for storage
       const arrayBuffer = await blob.arrayBuffer()
       const uint8Array = new Uint8Array(arrayBuffer)
 
@@ -283,9 +315,17 @@ export default function FaceTrackingApp() {
         data: Array.from(uint8Array),
         timestamp: Date.now(),
         duration: recordingTime,
+        size: blob.size,
       }
 
-      localStorage.setItem(`face-tracking-video-${videoId}`, JSON.stringify(videoData))
+      // Save to localStorage
+      try {
+        localStorage.setItem(`face-tracking-video-${videoId}`, JSON.stringify(videoData))
+        console.log("Video saved to localStorage successfully")
+      } catch (storageError) {
+        console.error("localStorage error:", storageError)
+        // If localStorage fails, still add to UI with the blob
+      }
 
       // Update saved videos list
       const newVideo: SavedVideo = {
@@ -294,19 +334,23 @@ export default function FaceTrackingApp() {
         blob,
         timestamp: videoData.timestamp,
         duration: videoData.duration,
+        objectUrl,
       }
 
       setSavedVideos((prev) => [newVideo, ...prev])
 
       toast({
-        title: "Video saved",
-        description: "Recording saved to local storage",
+        title: "Video saved successfully",
+        description: `Recording saved (${(blob.size / 1024 / 1024).toFixed(2)} MB)`,
       })
+
+      // Clear recorded chunks
+      recordedChunksRef.current = []
     } catch (error) {
       console.error("Error saving video:", error)
       toast({
         title: "Save error",
-        description: "Unable to save video",
+        description: "Unable to save video: " + (error as Error).message,
         variant: "destructive",
       })
     }
@@ -314,18 +358,24 @@ export default function FaceTrackingApp() {
 
   // Download video
   const downloadVideo = (video: SavedVideo) => {
-    const url = URL.createObjectURL(video.blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `${video.name}.webm`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
+    if (video.objectUrl) {
+      const a = document.createElement("a")
+      a.href = video.objectUrl
+      a.download = `${video.name}.webm`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+    }
   }
 
   // Delete video
   const deleteVideo = (videoId: string) => {
+    // Find and revoke object URL
+    const videoToDelete = savedVideos.find((v) => v.id === videoId)
+    if (videoToDelete?.objectUrl) {
+      URL.revokeObjectURL(videoToDelete.objectUrl)
+    }
+
     localStorage.removeItem(`face-tracking-video-${videoId}`)
     setSavedVideos((prev) => prev.filter((v) => v.id !== videoId))
 
@@ -342,6 +392,15 @@ export default function FaceTrackingApp() {
     return `${mins}:${secs.toString().padStart(2, "0")}`
   }
 
+  // Format file size
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return "0 Bytes"
+    const k = 1024
+    const sizes = ["Bytes", "KB", "MB", "GB"]
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
+  }
+
   useEffect(() => {
     initializeCamera()
 
@@ -349,6 +408,12 @@ export default function FaceTrackingApp() {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop())
       }
+      // Cleanup object URLs
+      savedVideos.forEach((video) => {
+        if (video.objectUrl) {
+          URL.revokeObjectURL(video.objectUrl)
+        }
+      })
     }
   }, [initializeCamera])
 
@@ -427,15 +492,23 @@ export default function FaceTrackingApp() {
                         <div className="flex-1 min-w-0">
                           <h3 className="font-medium text-sm truncate">{video.name}</h3>
                           <p className="text-xs text-gray-500">{new Date(video.timestamp).toLocaleString()}</p>
-                          <p className="text-xs text-gray-500">Duration: {formatDuration(video.duration)}</p>
+                          <p className="text-xs text-gray-500">
+                            Duration: {formatDuration(video.duration)} • Size: {formatFileSize(video.blob.size)}
+                          </p>
                         </div>
                       </div>
 
-                      <video
-                        src={URL.createObjectURL(video.blob)}
-                        controls
-                        className="w-full h-32 object-cover rounded"
-                      />
+                      {video.objectUrl && (
+                        <video
+                          src={video.objectUrl}
+                          controls
+                          preload="metadata"
+                          className="w-full h-32 object-cover rounded"
+                          onError={(e) => {
+                            console.error("Video playback error:", e)
+                          }}
+                        />
+                      )}
 
                       <div className="flex gap-2">
                         <Button
