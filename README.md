@@ -1,52 +1,69 @@
-# Face Tracking Web Application
+# 🎯 Face Tracking App with Video Recording
 
-A real-time face tracking web application using facial landmark detection. This app leverages modern browser APIs and machine learning models to detect and track faces via a webcam feed.
+A real-time face tracking and video recording application built using **Next.js**. Developed as part of a 24-hour coding challenge, this project combines live facial landmark detection with video capture, offering a seamless and responsive browser-based experience.
 
-## 🌐 Live Demo
+## 🚀 Live Demo
 
-👉 [Click here to view the live app](https://face-tracking-app-chi.vercel.app/)
+🔗 [View the Live App](https://face-tracking-app-chi.vercel.app/)
 
-## 📸 Features
+---
 
-- ✅ Real-time face detection using webcam
-- 🧠 Facial landmark detection with high accuracy
-- 🚀 Fast and lightweight performance in the browser
-- 📱 Responsive layout for mobile and desktop
-- 🔒 Secure camera access with user permission
-- ♻️ Extendable for emotion detection, drowsiness monitoring, and more
+## 📝 Challenge Description
 
-## 🛠 Tech Stack
+**Task:** Build a face tracking application using **Next.js** that:
+- Tracks a user’s face in real-time
+- Allows video recording while displaying tracking markers
+- Saves recorded video locally
+- Works seamlessly on desktop and mobile
 
-- **Frontend**: HTML5, CSS3, JavaScript (or React if used)
-- **Face Detection**: MediaPipe / TensorFlow.js / face-api.js (depending on your implementation)
-- **Deployment**: Vercel (or any hosting provider)
+---
+
+## 🔧 Features
+
+- ✅ Real-time face tracking with overlaid markers
+- 🎥 Start/stop video recording
+- 💾 Save recorded video using `localStorage`
+- 📱 Fully responsive design
+- ⚡ Fast, clean, and lightweight performance
+- 🧠 Powered by open-source face tracking APIs
+
+---
+
+## 🛠️ Tech Stack
+
+- **Framework:** Next.js (React)
+- **Video Recording:** MediaRecorder API
+- **Face Tracking:** face-api.js / MediaPipe / other open-source API
+- **Styling:** Tailwind CSS / CSS Modules
+- **Storage:** localStorage
+
+---
 
 ## 📁 Project Structure
 
 ```
 face-tracking-app/
-├── public/               # Static assets
-├── src/
-│   ├── components/       # UI components (if applicable)
-│   ├── pages/            # Main pages (if using a framework like Next.js)
-│   ├── styles/           # CSS or Tailwind styles
-│   └── utils/            # Utility functions and helpers
-├── .gitignore
-├── package.json
+├── components/       # Reusable components
+├── pages/            # Next.js page routes
+├── public/           # Static assets
+├── styles/           # CSS/Tailwind files
+├── utils/            # Helper functions
+├── hooks/            # Custom React hooks
 ├── README.md
-└── ...
+└── package.json
 ```
 
-## 🚀 Getting Started
+---
 
-To run this project locally:
+## 📦 Getting Started
 
-### Prerequisites
+### 📋 Prerequisites
 
-- Node.js and npm installed
-- A modern browser (Chrome, Firefox, etc.)
+- Node.js ≥ 16
+- npm or yarn
+- Modern browser with webcam support
 
-### Installation
+### 🚀 Installation
 
 ```bash
 git clone https://github.com/your-username/face-tracking-app.git
@@ -54,42 +71,60 @@ cd face-tracking-app
 npm install
 ```
 
-### Start the development server
+### ▶️ Run the app
 
 ```bash
 npm run dev
 ```
 
-Visit `http://localhost:3000` in your browser to use the app locally.
+Visit `http://localhost:3000` to use the app locally.
 
-### Build for production
+### 🛠 Build for production
 
 ```bash
 npm run build
+npm run start
 ```
 
-## 📦 Deployment
+---
 
-The app is deployed and hosted at:
+## 🧪 How It Works
 
-🔗 https://face-tracking-app-chi.vercel.app/
+1. User grants webcam access.
+2. Face tracking markers appear in real time.
+3. On clicking “Record,” the app starts recording using the `MediaRecorder` API.
+4. The tracked video is saved in `localStorage` and can be previewed/downloaded.
 
-You can deploy it to any hosting platform that supports static or Node.js apps.
+---
+
+## 🎯 Challenge Requirements Coverage
+
+| Requirement                    | Status   |
+|-------------------------------|----------|
+| ✅ Face tracking API integrated | ✅ Done  |
+| ✅ Video recording functionality | ✅ Done  |
+| ✅ Tracking marker in video     | ✅ Done  |
+| ✅ Local save via localStorage | ✅ Done  |
+| ✅ Mobile responsiveness        | ✅ Done  |
+| ✅ Next.js used as base        | ✅ Done  |
+
+---
 
 ## 🧠 Future Improvements
 
-- Add emotion recognition
-- Driver drowsiness detection integration
-- Alert system based on facial expressions
-- Multi-face tracking
-- Audio alerts and logging system
+- Export video as downloadable file
+- Add emotion detection or pose estimation
+- Add visual recording timer or progress bar
+- Support cloud storage for videos
 
-## 🤝 Contributing
-
-Contributions are welcome!  
-If you'd like to contribute, fork the repo and submit a pull request.
+---
 
 ## 📜 License
 
-This project is licensed under the **MIT License**.  
-Feel free to use it for personal or commercial purposes.
+This project is licensed under the **MIT License**.
+
+---
+
+## 🙌 Author
+
+Built with ❤️ by Dhiraj Wagh
