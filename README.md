@@ -1,30 +1,77 @@
-# Build attached project
+Face Tracker Web App
+🚀 Overview
+This is a real-time face tracking web application that uses facial landmark detection via the user's webcam. It's designed for performance and simplicity, with a responsive UI and seamless tracking experience directly in the browser.
 
-*Automatically synced with your [v0.dev](https://v0.dev) deployments*
+🌐 Live Demo
+👉 Try the App Live
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/dhiraj1155s-projects/v0-build-attached-project)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.dev-black?style=for-the-badge)](https://v0.dev/chat/projects/OxTmEO9iJZF)
+🔍 Features
+🎯 Real-time face detection
 
-## Overview
+📷 Webcam access with facial landmark tracking
 
-This repository will stay in sync with your deployed chats on [v0.dev](https://v0.dev).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.dev](https://v0.dev).
+⚡ Lightweight and fast performance
 
-## Deployment
+🧠 Ready for future extensions like emotion detection or head pose estimation
 
-Your project is live at:
+📱 Fully responsive design for all devices
 
-**[https://vercel.com/dhiraj1155s-projects/v0-build-attached-project](https://vercel.com/dhiraj1155s-projects/v0-build-attached-project)**
+🛠️ Getting Started
+Prerequisites
+Node.js v16 or later
 
-## Build your app
+npm or yarn
 
-Continue building your app on:
+A modern browser (Chrome, Firefox, etc.) with camera access enabled
 
-**[https://v0.dev/chat/projects/OxTmEO9iJZF](https://v0.dev/chat/projects/OxTmEO9iJZF)**
+Installation
+Clone the repository:
 
-## How It Works
+bash
+Copy
+Edit
+git clone https://github.com/your-username/your-repo-name.git
+cd your-repo-name
+Install dependencies:
 
-1. Create and modify your project using [v0.dev](https://v0.dev)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
+bash
+Copy
+Edit
+npm install
+Start the development server:
+
+bash
+Copy
+Edit
+npm run dev
+Visit the app in your browser at:
+
+arduino
+Copy
+Edit
+http://localhost:3000
+🚀 Deployment
+To build and deploy the app:
+
+bash
+Copy
+Edit
+npm run build
+You can host the output on any static hosting service or deploy directly using your preferred platform.
+
+📁 Project Structure
+java
+Copy
+Edit
+.
+├── components/       // Reusable UI components
+├── pages/            // Page routes
+├── public/           // Static assets
+├── styles/           // Global styles
+├── utils/            // Utility functions
+└── package.json      // Project metadata and scripts
+🤝 Contributing
+Contributions are welcome! Please fork the repo and submit a pull request with improvements, features, or bug fixes.
+
+🛡 License
+This project is open-sourced under the MIT License.
